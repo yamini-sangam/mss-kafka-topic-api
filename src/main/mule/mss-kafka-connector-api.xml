@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	
+	<flow name="producejsonmessagetokafkaFlow" doc:id="180265fa-c54f-4a92-9d7f-ab5379c37f5b" >
+		<http:listener doc:name="main_http-listener" doc:id="6065d508-9235-4cf7-8924-c4d6c6da5202" path="${http.path}" config-ref="HTTP_Listener_config"/>
+		<kafka:publish doc:name="Publish JSON MSG" doc:id="f764d278-9b1e-4e3f-8d43-79093c63a65e" config-ref="Apache_Kafka_Producer_configuration" topic="mulesoft_poc"/>
+		<logger level="INFO" doc:name="LOG DEBUG Final Response" doc:id="06d78ee4-31ad-4aa8-84cd-117c666886b8" message='#["Published successfully"]'/>
+		<ee:transform doc:name="Final Response" doc:id="7506437e-bd49-42d4-943b-0fdb3d903f7b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="producejsonmessagetokafkaFlow1" doc:id="1752914d-ae2f-48f0-b345-8a723c77995d" >
+		<kafka:message-listener doc:name="Message listener" doc:id="f8846b46-67c0-4491-91bf-c07552675c77" config-ref="Apache_Kafka_Consumer_configuration" pollTimeout="3" pollTimeoutTimeUnit="MINUTES" ackMode="AUTO"/>
+		<logger level="INFO" doc:name="Start Log" doc:id="1cd1f8a8-0bfa-4ec9-b6b1-5db815e885a5" message="Message Received From Kafka Topic:#[payload]"/>
+		<set-payload value='#[read(payload,"application/json")]' doc:name="PL SET JSON Payload" doc:id="7d2bba25-324d-4f71-99f1-f89f31a78e6f" />
+		<ee:transform doc:name="DW Map Payload with Required Fields" doc:id="1d6f1035-7f2a-4cb9-a121-6f4a89c867e0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map{
+	CustomerName:$.Firstname,
+	CustomerID:$.Customerid
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="Write Response in a File" doc:id="695937a5-40a7-4bea-99b8-a5a392b22570" path="D:\testfiles\kafkadata.txt"/>
+		<logger level="INFO" doc:name="End Log" doc:id="cd29bdec-30c4-4abd-a725-896c49a19924" message='#["File written Successfully"]'/>
+	</flow>
+</mule>
